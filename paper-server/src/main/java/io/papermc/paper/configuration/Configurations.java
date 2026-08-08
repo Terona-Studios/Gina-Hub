@@ -113,9 +113,37 @@ public abstract class Configurations<G, W> {
             loader.save(node);
         } catch (ConfigurateException ex) {
             if (ex.getCause() instanceof AccessDeniedException) {
-                LOGGER.warn("Could not save {}: Paper could not persist the full set of configuration settings in the configuration file. Any setting missing from the configuration file will be set with its default value in memory. Admins should make sure to review the configuration documentation at https://docs.papermc.io/paper/configuration for more details.", filename, ex);
+                LOGGER.warn("Could not save {}: the full set of configuration settings could not be persisted to the configuration file. Any setting missing from the configuration file will be set with its default value in memory. Admins should make sure to review the configuration documentation at https://docs.papermc.io/paper/configuration for more details (Gina-Hub inherits Paper's configuration format unchanged).", filename, ex);
             } else throw ex;
         }
+    }
+
+    /**
+     * Gina-Hub: if non-null, the global configuration lives at this key within its physical
+     * file instead of being the whole document -- this is how Gina-Hub unifies the global and
+     * world-defaults documents into a single {@code gina-config.yml} while keeping their Java
+     * models (and this framework's version-check/transform/reload logic) completely unchanged.
+     * Configurate's {@link ConfigurationNode#node} returns a live child reference into the same
+     * tree, so operating on a subtree and then saving the ORIGINAL ROOT node (not the subtree)
+     * naturally preserves whatever the other document's subtree already holds.
+     */
+    protected @Nullable String globalConfigSubtreeKey() {
+        return null;
+    }
+
+    /** @see #globalConfigSubtreeKey() */
+    protected @Nullable String worldDefaultsConfigSubtreeKey() {
+        return null;
+    }
+
+    private record RootAndNode(ConfigurationNode root, ConfigurationNode node, boolean fileIsNew, boolean isNewSection) {
+    }
+
+    private RootAndNode loadRootAndNode(final YamlConfigurationLoader loader, final Path file, final @Nullable String subtreeKey) throws ConfigurateException {
+        final boolean fileIsNew = Files.notExists(file);
+        final ConfigurationNode root = fileIsNew ? CommentedConfigurationNode.root(loader.defaultOptions()) : loader.load();
+        final ConfigurationNode node = subtreeKey != null ? root.node(subtreeKey) : root;
+        return new RootAndNode(root, node, fileIsNew, fileIsNew || node.virtual());
     }
 
     protected G initializeGlobalConfiguration(final RegistryAccess registryAccess, final CheckedFunction<ConfigurationNode, G, SerializationException> creator) throws ConfigurateException {
@@ -124,18 +152,19 @@ public abstract class Configurations<G, W> {
             .defaultOptions(this.applyObjectMapperFactory(this.createGlobalObjectMapperFactoryBuilder().build()))
             .path(configFile)
             .build();
-        final ConfigurationNode node;
-        if (Files.notExists(configFile)) {
-            node = CommentedConfigurationNode.root(loader.defaultOptions());
-            node.node(Configuration.VERSION_FIELD).raw(this.globalConfigVersion());
+        final RootAndNode rn = this.loadRootAndNode(loader, configFile, this.globalConfigSubtreeKey());
+        final ConfigurationNode node = rn.node();
+        if (rn.fileIsNew()) {
             GlobalConfiguration.isFirstStart = true;
+        }
+        if (rn.isNewSection()) {
+            node.node(Configuration.VERSION_FIELD).raw(this.globalConfigVersion());
         } else {
-            node = loader.load();
             this.verifyGlobalConfigVersion(node);
         }
         this.applyGlobalConfigTransformations(node);
         final G instance = creator.apply(node);
-        trySaveFileNode(loader, node, configFile.toString());
+        trySaveFileNode(loader, rn.root(), configFile.toString());
         return instance;
     }
 
@@ -165,10 +194,10 @@ public abstract class Configurations<G, W> {
             .put(FIRST_DEFAULT)
             .build();
         final Path configFile = this.globalFolder.resolve(this.defaultWorldConfigFileName);
-        final DefaultWorldLoader result = this.createDefaultWorldLoader(false, contextMap, configFile);
-        final YamlConfigurationLoader loader = result.loader();
-        final ConfigurationNode node = loader.load();
-        if (result.isNewFile()) { // add version to new files
+        final YamlConfigurationLoader loader = this.buildWorldConfigLoader(contextMap, configFile);
+        final RootAndNode rn = this.loadRootAndNode(loader, configFile, this.worldDefaultsConfigSubtreeKey());
+        final ConfigurationNode node = rn.node();
+        if (rn.isNewSection()) { // add version to new sections/files
             node.node(Configuration.VERSION_FIELD).raw(this.worldConfigVersion());
         } else {
             this.verifyWorldConfigVersion(contextMap, node);
@@ -176,24 +205,14 @@ public abstract class Configurations<G, W> {
         this.applyWorldConfigTransformations(contextMap, node, null);
         final W instance = node.require(this.worldConfigClass);
         node.set(this.worldConfigClass, instance);
-        this.trySaveFileNode(loader, node, configFile.toString());
+        this.trySaveFileNode(loader, rn.root(), configFile.toString());
     }
 
-    private DefaultWorldLoader createDefaultWorldLoader(final boolean requireFile, final ContextMap contextMap, final Path configFile) {
-        boolean willCreate = Files.notExists(configFile);
-        if (requireFile && willCreate) {
-            throw new IllegalStateException("World defaults configuration file '" + configFile + "' doesn't exist");
-        }
-        return new DefaultWorldLoader(
-            this.createWorldConfigLoaderBuilder(contextMap)
-                .defaultOptions(this.applyObjectMapperFactory(this.createWorldObjectMapperFactoryBuilder(contextMap).build()))
-                .path(configFile)
-                .build(),
-            willCreate
-        );
-    }
-
-    private record DefaultWorldLoader(YamlConfigurationLoader loader, boolean isNewFile) {
+    private YamlConfigurationLoader buildWorldConfigLoader(final ContextMap contextMap, final Path configFile) {
+        return this.createWorldConfigLoaderBuilder(contextMap)
+            .defaultOptions(this.applyObjectMapperFactory(this.createWorldObjectMapperFactoryBuilder(contextMap).build()))
+            .path(configFile)
+            .build();
     }
 
     protected ObjectMapper.Factory.Builder createWorldObjectMapperFactoryBuilder(final ContextMap contextMap) {
@@ -213,8 +232,12 @@ public abstract class Configurations<G, W> {
     protected W createWorldConfig(final ContextMap contextMap, final CheckedFunction<ConfigurationNode, W, SerializationException> creator) throws IOException {
         Preconditions.checkArgument(!contextMap.isDefaultWorldContext(), "cannot create world map with default world context");
         final Path defaultsConfigFile = this.globalFolder.resolve(this.defaultWorldConfigFileName);
-        final YamlConfigurationLoader defaultsLoader = this.createDefaultWorldLoader(true, this.createDefaultContextMap(contextMap.require(REGISTRY_ACCESS)).build(), defaultsConfigFile).loader();
-        final ConfigurationNode defaultsNode = defaultsLoader.load();
+        if (Files.notExists(defaultsConfigFile)) {
+            throw new IllegalStateException("World defaults configuration file '" + defaultsConfigFile + "' doesn't exist");
+        }
+        final ContextMap defaultsContextMap = this.createDefaultContextMap(contextMap.require(REGISTRY_ACCESS)).build();
+        final YamlConfigurationLoader defaultsLoader = this.buildWorldConfigLoader(defaultsContextMap, defaultsConfigFile);
+        final ConfigurationNode defaultsNode = this.loadRootAndNode(defaultsLoader, defaultsConfigFile, this.worldDefaultsConfigSubtreeKey()).node();
 
         boolean newFile = false;
         final Path dir = contextMap.require(WORLD_DIRECTORY);

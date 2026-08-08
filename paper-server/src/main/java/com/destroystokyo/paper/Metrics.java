@@ -593,7 +593,10 @@ public class Metrics {
             boolean logFailedRequests = config.getBoolean("logFailedRequests", false);
             // Only start Metrics, if it's enabled in the config
             if (config.getBoolean("enabled", true)) {
-                Metrics metrics = new Metrics("Paper", serverUUID, logFailedRequests, Bukkit.getLogger());
+                // Reported under Gina-Hub's own bStats software identity, not Paper's --
+                // these are two different, separately distributed pieces of software and
+                // metrics should not be misattributed to Paper's public server-count stats.
+                Metrics metrics = new Metrics("Gina-Hub", serverUUID, logFailedRequests, Bukkit.getLogger());
 
                 metrics.addCustomChart(new Metrics.SimplePie("minecraft_version", () -> {
                     String minecraftVersion = Bukkit.getVersion();
@@ -603,15 +606,15 @@ public class Metrics {
 
                 metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
                 metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : "offline"));
-                final String paperVersion;
+                final String ginaVersion;
                 final String implVersion = org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion();
                 if (implVersion != null) {
                     final String buildOrHash = implVersion.substring(implVersion.lastIndexOf('-') + 1);
-                    paperVersion = "git-Paper-%s-%s".formatted(Bukkit.getServer().getMinecraftVersion(), buildOrHash);
+                    ginaVersion = "git-Gina-%s-%s".formatted(Bukkit.getServer().getMinecraftVersion(), buildOrHash);
                 } else {
-                    paperVersion = "unknown";
+                    ginaVersion = "unknown";
                 }
-                metrics.addCustomChart(new Metrics.SimplePie("paper_version", () -> paperVersion));
+                metrics.addCustomChart(new Metrics.SimplePie("gina_version", () -> ginaVersion));
 
                 metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
                     Map<String, Map<String, Integer>> map = new HashMap<>();

@@ -22,11 +22,12 @@ public final class PaperCommands {
     private static final Map<String, Command> COMMANDS = new HashMap<>();
 
     public static void registerCommands(final MinecraftServer server) {
-        COMMANDS.put("paper", new PaperCommand("paper"));
+        // "gina" is the sole administrative command identity -- no "paper" alias.
+        COMMANDS.put("gina", new PaperCommand("gina"));
         COMMANDS.put("mspt", new MSPTCommand("mspt"));
 
         COMMANDS.forEach((s, command) -> {
-            server.server.getCommandMap().register(s, "Paper", command);
+            server.server.getCommandMap().register(s, "Gina", command);
         });
     }
 
@@ -40,7 +41,7 @@ public final class PaperCommands {
         io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.registerWithFlagsInternal(
             null,
             namespace,
-            "Paper",
+            "Gina",
             node,
             description,
             aliases,

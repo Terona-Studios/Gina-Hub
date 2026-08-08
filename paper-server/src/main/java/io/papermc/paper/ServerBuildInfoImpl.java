@@ -30,7 +30,7 @@ public record ServerBuildInfoImpl(
     private static final String ATTRIBUTE_GIT_BRANCH = "Git-Branch";
     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
 
-    private static final String BRAND_PAPER_NAME = "Paper";
+    private static final String BRAND_GINA_NAME = "Gina-Hub";
 
     private static final String BUILD_DEV = "DEV";
 
@@ -42,9 +42,9 @@ public record ServerBuildInfoImpl(
         this(
             getManifestAttribute(manifest, ATTRIBUTE_BRAND_ID)
                 .map(Key::key)
-                .orElse(BRAND_PAPER_ID),
+                .orElse(BRAND_GINA_ID),
             getManifestAttribute(manifest, ATTRIBUTE_BRAND_NAME)
-                .orElse(BRAND_PAPER_NAME),
+                .orElse(BRAND_GINA_NAME),
             SharedConstants.getCurrentVersion().id(),
             SharedConstants.getCurrentVersion().name(),
             getManifestAttribute(manifest, ATTRIBUTE_BUILD_NUMBER)
@@ -61,7 +61,10 @@ public record ServerBuildInfoImpl(
 
     @Override
     public boolean isBrandCompatible(final @NotNull Key brandId) {
-        return brandId.equals(this.brandId);
+        // Gina-Hub is a heavily modified fork of Paper that preserves the Paper API surface,
+        // so plugins checking compatibility against Paper's brand id should still get `true`,
+        // in addition to plugins that specifically check for Gina-Hub's own brand id.
+        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID);
     }
 
     @Override

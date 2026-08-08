@@ -32,7 +32,7 @@ public class Main {
             String defaultMainClassName = this.readResource("main-class", BufferedReader::readLine);
             String mainClassName = System.getProperty("bundlerMainClass", defaultMainClassName);
 
-            String repoDir = System.getProperty("bundlerRepoDir", "bundler");
+            String repoDir = System.getProperty("bundlerRepoDir", "runtime"); // Gina - runtime/ directory restructure (libraries, versions, and Paperclip's own download cache all land here natively)
             Path outputDir = Paths.get(repoDir).toAbsolutePath();
             if (!Files.isDirectory(outputDir)) {
                 Files.createDirectories(outputDir);

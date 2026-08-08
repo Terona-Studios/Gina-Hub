@@ -25,7 +25,7 @@ public class HelpYamlReader {
     public HelpYamlReader(Server server) {
         this.server = server;
 
-        File helpYamlFile = new File("help.yml");
+        File helpYamlFile = new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "help.yml"); // Gina - configs/ directory restructure
         YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/help.yml"), StandardCharsets.UTF_8));
 
         try {

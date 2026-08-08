@@ -20,6 +20,11 @@ public interface ServerBuildInfo {
     Key BRAND_PAPER_ID = Key.key("papermc", "paper");
 
     /**
+     * The brand id for Gina-Hub, a heavily modified fork of Paper.
+     */
+    Key BRAND_GINA_ID = Key.key("cryvex", "gina-hub");
+
+    /**
      * Gets the {@code ServerBuildInfo}.
      *
      * @return the {@code ServerBuildInfo}

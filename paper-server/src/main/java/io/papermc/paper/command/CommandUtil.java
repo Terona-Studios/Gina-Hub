@@ -45,7 +45,7 @@ public final class CommandUtil {
             while (iterator.hasNext()) {
                 String s1 = (String) iterator.next();
 
-                if (matches(last, s1) && (sender.hasPermission(PaperCommand.BASE_PERM + s1) || sender.hasPermission("bukkit.command.paper"))) {
+                if (matches(last, s1) && (sender.hasPermission(PaperCommand.BASE_PERM + s1) || sender.hasPermission("bukkit.command.gina"))) {
                     results.add(s1);
                 }
             }

@@ -41,7 +41,7 @@ import static io.papermc.paper.pluginremap.InsertManifestAttribute.addNamespaceM
 
 @DefaultQualifier(NonNull.class)
 public final class PluginRemapper {
-    public static final boolean DEBUG_LOGGING = Boolean.getBoolean("Paper.PluginRemapperDebug");
+    public static final boolean DEBUG_LOGGING = Boolean.getBoolean("Gina.PluginRemapperDebug");
     private static final String PAPER_REMAPPED = ".paper-remapped";
     private static final String UNKNOWN_ORIGIN = "unknown-origin";
     private static final String LIBRARIES = "libraries";
@@ -433,7 +433,7 @@ public final class PluginRemapper {
             TimeUnit.SECONDS,
             ScalingThreadPool.createUnboundedQueue(),
             new ThreadFactoryBuilder()
-                .setNameFormat("Paper Plugin Remapper Thread - %1$d")
+                .setNameFormat("Gina-Hub Plugin Remapper Thread - %1$d")
                 .setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER))
                 .build(),
             ScalingThreadPool.defaultReEnqueuePolicy()

@@ -1,12 +1,12 @@
-# This is the Bukkit commands configuration file for Paper.
+# This is the Bukkit commands configuration file for Gina-Hub, a heavily modified fork of Paper.
 #
-# If you need help with the configuration or have any questions related to Paper,
-# join us in our Discord or check the docs page.
+# This config format is inherited unchanged from Paper. For general Bukkit/Paper
+# configuration questions, the upstream Paper documentation still applies:
 #
 # File Reference: https://docs.papermc.io/paper/reference/bukkit-commands-configuration/
-# Docs: https://docs.papermc.io/
-# Discord: https://discord.gg/papermc
-# Website: https://papermc.io/
+# Paper Docs: https://docs.papermc.io/
+# Paper Discord: https://discord.gg/papermc
+# Paper Website: https://papermc.io/
 
 command-block-overrides: []
 ignore-vanilla-permissions: false

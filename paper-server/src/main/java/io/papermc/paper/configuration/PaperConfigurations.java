@@ -50,6 +50,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -73,6 +74,7 @@ import org.slf4j.Logger;
 import org.spigotmc.SpigotConfig;
 import org.spigotmc.SpigotWorldConfig;
 import org.spongepowered.configurate.BasicConfigurationNode;
+import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.ConfigurationOptions;
@@ -89,51 +91,52 @@ import static io.leangen.geantyref.GenericTypeReflector.erase;
 public class PaperConfigurations extends Configurations<GlobalConfiguration, WorldConfiguration> {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
-    static final String GLOBAL_CONFIG_FILE_NAME = "paper-global.yml";
-    static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "paper-world-defaults.yml";
-    static final String WORLD_CONFIG_FILE_NAME = "paper-world.yml";
-    public static final String CONFIG_DIR = "config";
-    private static final String BACKUP_DIR ="legacy-backup";
+    /** Both the global and world-defaults documents now share this one physical file. */
+    static final String GLOBAL_CONFIG_FILE_NAME = "gina-config.yml";
+    static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "gina-config.yml";
+    static final String WORLD_CONFIG_FILE_NAME = "gina-world.yml";
+    public static final String CONFIG_DIR = "configs";
+    private static final String BACKUP_DIR = "legacy-backup";
+    private static final String GLOBAL_SECTION_KEY = "global";
+    private static final String WORLD_DEFAULTS_SECTION_KEY = "world-defaults";
+    /** Old, pre-unification per-file names, kept only so {@link #setup} can detect and migrate them. */
+    private static final String OLD_GLOBAL_CONFIG_FILE_NAME = "gina-global.yml";
+    private static final String OLD_WORLD_DEFAULTS_CONFIG_FILE_NAME = "gina-world-defaults.yml";
 
-    private static final String GLOBAL_HEADER = String.format("""
-            This is the global configuration file for Paper.
+    private static final String UNIFIED_CONFIG_HEADER = String.format("""
+            This is the unified configuration file for Gina-Hub, a heavily modified fork of Paper.
             As you can see, there's a lot to configure. Some options may impact gameplay, so use
             with caution, and make sure you know what each option does before configuring.
 
-            If you need help with the configuration or have any questions related to Paper,
-            join us in our Discord or check the docs page.
+            This file has two top-level sections:
 
-            The world configuration options have been moved inside
-            their respective world folder. The files are named %s
+              %s:
+                Server-wide settings that apply once, regardless of how many worlds exist.
+
+              %s:
+                Default settings applied to every world, UNLESS that world has its own override
+                in its per-world config file (%s, stored inside that world's own folder). Editing
+                a value here changes the default for all worlds that haven't overridden it.
+
+            This configuration format (option names, semantics, and per-option comments) is
+            inherited unchanged from Paper -- only the physical file layout is Gina-Hub's own.
+            The upstream Paper documentation is still the best reference for what each option
+            actually does:
 
             File Reference: https://docs.papermc.io/paper/reference/global-configuration/
-            Docs: https://docs.papermc.io/
-            Discord: https://discord.gg/papermc
-            Website: https://papermc.io/""", WORLD_CONFIG_FILE_NAME);
-
-    private static final String WORLD_DEFAULTS_HEADER = """
-            This is the world defaults configuration file for Paper.
-            As you can see, there's a lot to configure. Some options may impact gameplay, so use
-            with caution, and make sure you know what each option does before configuring.
-
-            If you need help with the configuration or have any questions related to Paper,
-            join us in our Discord or check the docs page.
-
-            Configuration options here apply to all worlds, unless you specify overrides inside
-            the world-specific config file inside each world folder.
-
-            File Reference: https://docs.papermc.io/paper/reference/world-configuration/
-            Docs: https://docs.papermc.io/
-            Discord: https://discord.gg/papermc
-            Website: https://papermc.io/""";
+            Paper Docs: https://docs.papermc.io/
+            Paper Discord: https://discord.gg/papermc
+            Paper Website: https://papermc.io/""", GLOBAL_SECTION_KEY, WORLD_DEFAULTS_SECTION_KEY, WORLD_CONFIG_FILE_NAME);
 
     private static final Function<ContextMap, String> WORLD_HEADER = map -> String.format("""
-        This is a world configuration file for Paper.
-        This file may start empty but can be filled with settings to override ones in the %s/%s
-        
+        This is a world configuration file for Gina-Hub, a heavily modified fork of Paper.
+        This file may start empty but can be filled with settings to override ones in the
+        "%s" section of %s/%s
+
         For more information, see https://docs.papermc.io/paper/reference/configuration/#per-world-configuration
-        
+
         World: %s (%s)""",
+        WORLD_DEFAULTS_SECTION_KEY,
         PaperConfigurations.CONFIG_DIR,
         PaperConfigurations.WORLD_DEFAULTS_CONFIG_FILE_NAME,
         map.require(WORLD_NAME),
@@ -144,8 +147,9 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         The global and world default configuration files have moved to %s
         and the world-specific configuration file has been moved inside
         the respective world folder.
-        
-        See https://docs.papermc.io/paper/configuration for more information.
+
+        See https://docs.papermc.io/paper/configuration for more information (Gina-Hub inherits
+        Paper's configuration format and structure unchanged).
         """;
 
     @VisibleForTesting
@@ -212,7 +216,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
 
     private static ConfigurationOptions defaultGlobalOptions(RegistryAccess registryAccess, ConfigurationOptions options) {
         return options
-            .header(GLOBAL_HEADER)
+            .header(UNIFIED_CONFIG_HEADER)
             .serializers(builder -> builder
                 .register(new ServerboundPacketClassSerializer())
                 .register(new RegistryValueSerializer<>(new TypeToken<DataComponentType<?>>() {}, registryAccess, Registries.DATA_COMPONENT_TYPE, false))
@@ -224,6 +228,16 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         GlobalConfiguration configuration = super.initializeGlobalConfiguration(registryAccess);
         GlobalConfiguration.set(configuration);
         return configuration;
+    }
+
+    @Override
+    protected @Nullable String globalConfigSubtreeKey() {
+        return GLOBAL_SECTION_KEY;
+    }
+
+    @Override
+    protected @Nullable String worldDefaultsConfigSubtreeKey() {
+        return WORLD_DEFAULTS_SECTION_KEY;
     }
 
     @Override
@@ -252,7 +266,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         final RegistryAccess access = contextMap.require(REGISTRY_ACCESS);
         return super.createWorldConfigLoaderBuilder(contextMap)
             .defaultOptions(options -> options
-                .header(contextMap.require(WORLD_NAME).equals(WORLD_DEFAULTS) ? WORLD_DEFAULTS_HEADER : WORLD_HEADER.apply(contextMap))
+                .header(contextMap.require(WORLD_NAME).equals(WORLD_DEFAULTS) ? UNIFIED_CONFIG_HEADER : WORLD_HEADER.apply(contextMap))
                 .serializers(serializers -> serializers
                     .register(new TypeToken<Reference2IntMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2IntMap<?>>(Reference2IntOpenHashMap::new, Integer.TYPE))
                     .register(new TypeToken<Reference2LongMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2LongMap<?>>(Reference2LongOpenHashMap::new, Long.TYPE))
@@ -367,17 +381,17 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
             final String legacyFileName = legacyConfig.getFileName().toString();
             try {
                 if (Files.exists(configDir) && !Files.isDirectory(configDir)) {
-                    throw new RuntimeException("Paper needs to create a '" + configDir.toAbsolutePath() + "' folder. You already have a non-directory named '" + configDir.toAbsolutePath() + "'. Please remove it and restart the server.");
+                    throw new RuntimeException("Gina-Hub needs to create a '" + configDir.toAbsolutePath() + "' folder. You already have a non-directory named '" + configDir.toAbsolutePath() + "'. Please remove it and restart the server.");
                 }
                 final Path backupDir = configDir.resolve(BACKUP_DIR);
                 if (Files.exists(backupDir) && !Files.isDirectory(backupDir)) {
-                    throw new RuntimeException("Paper needs to create a '" + BACKUP_DIR + "' directory in the '" + configDir.toAbsolutePath() + "' folder. You already have a non-directory named '" + BACKUP_DIR + "'. Please remove it and restart the server.");
+                    throw new RuntimeException("Gina-Hub needs to create a '" + BACKUP_DIR + "' directory in the '" + configDir.toAbsolutePath() + "' folder. You already have a non-directory named '" + BACKUP_DIR + "'. Please remove it and restart the server.");
                 }
                 createDirectoriesSymlinkAware(backupDir);
                 final String backupFileName = legacyFileName + ".old";
                 final Path legacyConfigBackup = backupDir.resolve(backupFileName);
                 if (Files.exists(legacyConfigBackup) && !Files.isRegularFile(legacyConfigBackup)) {
-                    throw new RuntimeException("Paper needs to create a '" + backupFileName + "' file in the '" + backupDir.toAbsolutePath() + "' folder. You already have a non-file named '" + backupFileName + "'. Please remove it and restart the server.");
+                    throw new RuntimeException("Gina-Hub needs to create a '" + backupFileName + "' file in the '" + backupDir.toAbsolutePath() + "' folder. You already have a non-file named '" + backupFileName + "'. Please remove it and restart the server.");
                 }
                 Files.move(legacyConfig.toRealPath(), legacyConfigBackup, StandardCopyOption.REPLACE_EXISTING); // make backup
                 if (Files.isSymbolicLink(legacyConfig)) {
@@ -395,18 +409,81 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         }
         try {
             createDirectoriesSymlinkAware(configDir);
+            migrateTwoFileConfigToUnified(configDir);
             return new PaperConfigurations(configDir);
         } catch (final IOException ex) {
             throw new RuntimeException("Could not setup PaperConfigurations", ex);
         }
     }
 
+    /**
+     * Migrates the old two-file layout ({@code gina-global.yml} + {@code gina-world-defaults.yml})
+     * into the unified {@code gina-config.yml}, under "global"/"world-defaults" top-level keys.
+     * Idempotent: does nothing once {@code gina-config.yml} already exists, and does nothing on a
+     * genuinely fresh install (neither old file present). Existing values are preserved as-is
+     * (including their version fields); the normal version-check/transform pipeline runs against
+     * them on the very next real config load, exactly as it would have against the old files.
+     * The old files are archived to {@code configs/legacy-backup/}, never overwritten or deleted.
+     */
+    private static void migrateTwoFileConfigToUnified(final Path configDir) throws IOException {
+        final Path unifiedFile = configDir.resolve(GLOBAL_CONFIG_FILE_NAME);
+        if (Files.exists(unifiedFile)) {
+            return;
+        }
+        final Path oldGlobal = configDir.resolve(OLD_GLOBAL_CONFIG_FILE_NAME);
+        final Path oldWorldDefaults = configDir.resolve(OLD_WORLD_DEFAULTS_CONFIG_FILE_NAME);
+        final boolean hasOldGlobal = Files.isRegularFile(oldGlobal);
+        final boolean hasOldWorldDefaults = Files.isRegularFile(oldWorldDefaults);
+        if (!hasOldGlobal && !hasOldWorldDefaults) {
+            return;
+        }
+
+        LOGGER.info("Migrating {} / {} into the unified {}", OLD_GLOBAL_CONFIG_FILE_NAME, OLD_WORLD_DEFAULTS_CONFIG_FILE_NAME, GLOBAL_CONFIG_FILE_NAME);
+        try {
+            final YamlConfigurationLoader.Builder unifiedBuilder = ConfigurationLoaders.naturallySorted()
+                .path(unifiedFile)
+                .defaultOptions(o -> o.header(UNIFIED_CONFIG_HEADER));
+            final YamlConfigurationLoader unifiedLoader = unifiedBuilder.build();
+            final ConfigurationNode unifiedRoot = CommentedConfigurationNode.root(unifiedLoader.defaultOptions());
+
+            if (hasOldGlobal) {
+                unifiedRoot.node(GLOBAL_SECTION_KEY).mergeFrom(ConfigurationLoaders.naturallySortedWithoutHeader(oldGlobal).load());
+            }
+            if (hasOldWorldDefaults) {
+                unifiedRoot.node(WORLD_DEFAULTS_SECTION_KEY).mergeFrom(ConfigurationLoaders.naturallySortedWithoutHeader(oldWorldDefaults).load());
+            }
+            unifiedLoader.save(unifiedRoot);
+
+            archiveOldConfigFile(configDir, oldGlobal);
+            archiveOldConfigFile(configDir, oldWorldDefaults);
+            LOGGER.info("Config migration complete. The old files were archived to {}/{}/", CONFIG_DIR, BACKUP_DIR);
+        } catch (final ConfigurateException ex) {
+            throw new IOException("Could not migrate old configuration files into " + GLOBAL_CONFIG_FILE_NAME, ex);
+        }
+    }
+
+    private static void archiveOldConfigFile(final Path configDir, final Path oldFile) throws IOException {
+        if (Files.notExists(oldFile)) {
+            return;
+        }
+        final Path backupDir = configDir.resolve(BACKUP_DIR);
+        createDirectoriesSymlinkAware(backupDir);
+        final Path archived = backupDir.resolve(oldFile.getFileName() + "." + Instant.now().getEpochSecond() + ".old");
+        Files.move(oldFile, archived, StandardCopyOption.REPLACE_EXISTING);
+    }
+
     private static void convert(final Path legacyConfig, final Path configDir, final Path worldFolder, final File spigotConfig) throws Exception {
         createDirectoriesSymlinkAware(configDir);
 
         final YamlConfigurationLoader legacyLoader = ConfigurationLoaders.naturallySortedWithoutHeader(legacyConfig);
-        final YamlConfigurationLoader globalLoader = ConfigurationLoaders.naturallySortedWithoutHeader(configDir.resolve(GLOBAL_CONFIG_FILE_NAME));
-        final YamlConfigurationLoader worldDefaultsLoader = ConfigurationLoaders.naturallySortedWithoutHeader(configDir.resolve(WORLD_DEFAULTS_CONFIG_FILE_NAME));
+        // Gina: both the global and world-defaults sections now share ONE physical file, so build
+        // a single combined root and save it once instead of two separate loaders fighting over
+        // the same path (the second .save() would otherwise silently overwrite the first's data).
+        final YamlConfigurationLoader unifiedLoader = ConfigurationLoaders.naturallySorted()
+            .path(configDir.resolve(GLOBAL_CONFIG_FILE_NAME))
+            .defaultOptions(o -> o.header(UNIFIED_CONFIG_HEADER))
+            .build();
+        final ConfigurationNode unifiedRoot = CommentedConfigurationNode.root(unifiedLoader.defaultOptions());
 
         final ConfigurationNode legacy = legacyLoader.load();
         checkState(!legacy.virtual(), "can't be virtual");
@@ -423,7 +500,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         legacy.mergeFrom(legacy.node("settings")); // flatten "settings" to root
         legacy.removeChild("settings");
         LegacyPaperConfig.toNewFormat().apply(legacy);
-        globalLoader.save(legacy); // save converted node to new global location
+        unifiedRoot.node(GLOBAL_SECTION_KEY).mergeFrom(legacy); // save converted node to new global section
 
         final ConfigurationNode worldDefaults = legacyWorldSettings.node("default").copy();
         checkState(!worldDefaults.virtual());
@@ -431,7 +508,9 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         legacyWorldSettings.removeChild("default");
         LegacyPaperWorldConfig.transformation().apply(worldDefaults);
         LegacyPaperWorldConfig.toNewFormat().apply(worldDefaults);
-        worldDefaultsLoader.save(worldDefaults);
+        unifiedRoot.node(WORLD_DEFAULTS_SECTION_KEY).mergeFrom(worldDefaults); // save converted node to new world-defaults section
+
+        unifiedLoader.save(unifiedRoot);
 
         legacyWorldSettings.childrenMap().forEach((world, legacyWorldNode) -> {
             try {

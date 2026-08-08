@@ -2,6 +2,7 @@ package io.papermc.paper.command;
 
 import com.destroystokyo.paper.util.VersionFetcher;
 import com.mojang.brigadier.Command;
+import io.papermc.paper.ServerBuildInfo;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -162,13 +163,11 @@ public class PaperVersionCommand {
         return this.computedVersion;
     }
 
+    private static final Component DIVIDER = Component.text("--------------------------", NamedTextColor.DARK_GRAY, TextDecoration.STRIKETHROUGH);
+
     private CompletableFuture<ComputedVersion> fetchVersionMessage() {
        return CompletableFuture.supplyAsync(() -> {
-           final Component message = Component.textOfChildren(
-               Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
-               Component.newline(),
-               this.versionFetcher.getVersionMessage()
-           );
+           final Component message = buildVersionBox(this.versionFetcher.getVersionMessage());
 
            return new ComputedVersion(
                message.hoverEvent(Component.translatable("chat.copy.click", NamedTextColor.WHITE))
@@ -176,6 +175,53 @@ public class PaperVersionCommand {
                System.currentTimeMillis()
            );
        });
+    }
+
+    /**
+     * Builds the public, clean {@code /version} / {@code /about} display. Deliberately does not
+     * expose development-build metadata (git branch, build timestamp) that a normal server
+     * admin or player has no use for -- that detail is still available via {@link
+     * ServerBuildInfo#asString} for anything that needs it (e.g. crash reports).
+     *
+     * @param history optional trailing line (e.g. "Previous version: ..."); pass {@link Component#empty()} for none
+     */
+    private static Component buildVersionBox(final Component history) {
+        final ServerBuildInfo info = ServerBuildInfo.buildInfo();
+        final String shortBuild;
+        if (info.gitCommit().isPresent()) {
+            final String commit = info.gitCommit().get();
+            shortBuild = commit.length() > 7 ? commit.substring(0, 7) : commit;
+        } else if (info.buildNumber().isPresent()) {
+            shortBuild = "build " + info.buildNumber().getAsInt();
+        } else {
+            shortBuild = "DEV";
+        }
+
+        final TextComponent.Builder builder = Component.text()
+            .append(DIVIDER)
+            .appendNewline()
+            .append(Component.text("This server is running ", NamedTextColor.GRAY))
+            .append(Component.text(info.brandName(), NamedTextColor.WHITE))
+            .append(Component.text(" version ", NamedTextColor.GRAY))
+            .append(Component.text(info.minecraftVersionId(), NamedTextColor.YELLOW))
+            .appendNewline()
+            .append(Component.text("Build: ", NamedTextColor.GRAY))
+            .append(Component.text(shortBuild, NamedTextColor.WHITE))
+            .appendNewline();
+
+        if (!history.equals(Component.empty())) {
+            builder.append(history).appendNewline();
+        }
+
+        builder
+            .appendNewline()
+            .append(Component.text("Gina-Hub", NamedTextColor.AQUA, TextDecoration.BOLD, TextDecoration.ITALIC))
+            .append(Component.text(" is a heavily modified fork of ", NamedTextColor.GRAY, TextDecoration.ITALIC))
+            .append(Component.text("PaperMC", NamedTextColor.WHITE, TextDecoration.ITALIC))
+            .appendNewline()
+            .append(DIVIDER);
+
+        return builder.build();
     }
 
     record ComputedVersion(Component message, long computedTime) {

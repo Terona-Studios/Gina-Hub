@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @ApiStatus.Internal
 public abstract class SimpleListPluginClassLoaderGroup implements PluginClassLoaderGroup {
 
-    private static final boolean DISABLE_CLASS_PRIORITIZATION = Boolean.getBoolean("Paper.DisableClassPrioritization");
+    private static final boolean DISABLE_CLASS_PRIORITIZATION = Boolean.getBoolean("Gina.DisableClassPrioritization");
 
     protected final List<ConfiguredPluginClassLoader> classloaders;
 

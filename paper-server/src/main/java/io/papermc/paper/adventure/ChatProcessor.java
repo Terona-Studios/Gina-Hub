@@ -50,7 +50,7 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 
 @DefaultQualifier(NonNull.class)
 public final class ChatProcessor {
-    static final ResourceKey<ChatType> PAPER_RAW = ResourceKey.create(Registries.CHAT_TYPE, Identifier.fromNamespaceAndPath(Identifier.PAPER_NAMESPACE, "raw"));
+    static final ResourceKey<ChatType> PAPER_RAW = ResourceKey.create(Registries.CHAT_TYPE, Identifier.fromNamespaceAndPath(Identifier.GINA_NAMESPACE, "raw"));
     static final String DEFAULT_LEGACY_FORMAT = "<%1$s> %2$s"; // copied from PlayerChatEvent/AsyncPlayerChatEvent
     final MinecraftServer server;
     final ServerPlayer player;

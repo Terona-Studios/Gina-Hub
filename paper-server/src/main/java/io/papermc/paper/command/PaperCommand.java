@@ -37,7 +37,7 @@ import static net.kyori.adventure.text.format.NamedTextColor.RED;
 
 @DefaultQualifier(NonNull.class)
 public final class PaperCommand extends Command {
-    static final String BASE_PERM = "bukkit.command.paper.";
+    static final String BASE_PERM = "bukkit.command.gina.";
     // subcommand label -> subcommand
     private static final Map<String, PaperSubcommand> SUBCOMMANDS = Util.make(() -> {
         final Map<Set<String>, PaperSubcommand> commands = new HashMap<>();
@@ -71,10 +71,10 @@ public final class PaperCommand extends Command {
 
     public PaperCommand(final String name) {
         super(name);
-        this.description = "Paper related commands";
-        this.usageMessage = "/paper [" + String.join(" | ", SUBCOMMANDS.keySet()) + "]";
+        this.description = "Gina-Hub administrative commands (heavily modified fork of Paper)";
+        this.usageMessage = "/" + name + " [" + String.join(" | ", SUBCOMMANDS.keySet()) + "]";
         final List<String> permissions = new ArrayList<>();
-        permissions.add("bukkit.command.paper");
+        permissions.add("bukkit.command.gina");
         permissions.addAll(SUBCOMMANDS.keySet().stream().map(s -> BASE_PERM + s).toList());
         this.setPermission(String.join(";", permissions));
         final PluginManager pluginManager = Bukkit.getServer().getPluginManager();
@@ -84,7 +84,7 @@ public final class PaperCommand extends Command {
     }
 
     private static boolean testPermission(final CommandSender sender, final String permission) {
-        if (sender.hasPermission(BASE_PERM + permission) || sender.hasPermission("bukkit.command.paper")) {
+        if (sender.hasPermission(BASE_PERM + permission) || sender.hasPermission("bukkit.command.gina")) {
             return true;
         }
         sender.sendMessage(Bukkit.permissionMessage());

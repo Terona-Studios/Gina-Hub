@@ -24,7 +24,7 @@ public record OptionallyFlatBedrockConditionSource(Identifier randomName, Vertic
 
     private static final ResourceKey<MapCodec<? extends SurfaceRules.ConditionSource>> CODEC_RESOURCE_KEY = ResourceKey.create(
         Registries.MATERIAL_CONDITION,
-        Identifier.fromNamespaceAndPath(Identifier.PAPER_NAMESPACE, "optionally_flat_bedrock_condition_source")
+        Identifier.fromNamespaceAndPath(Identifier.GINA_NAMESPACE, "optionally_flat_bedrock_condition_source")
     );
     private static final KeyDispatchDataCodec<OptionallyFlatBedrockConditionSource> CODEC = KeyDispatchDataCodec.of(RecordCodecBuilder.mapCodec((instance) -> {
         return instance.group(

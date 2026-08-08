@@ -30,7 +30,7 @@ public class Main {
                 this.acceptsAll(asList("c", "config"), "Properties file to use")
                         .withRequiredArg()
                         .ofType(File.class)
-                        .defaultsTo(new File("server.properties"))
+                        .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "server.properties")) // Gina - configs/ directory restructure
                         .describedAs("Properties file");
 
                 this.acceptsAll(asList("P", "plugins"), "Plugin directory to use")
@@ -82,13 +82,13 @@ public class Main {
                 this.acceptsAll(asList("b", "bukkit-settings"), "File for bukkit settings")
                         .withRequiredArg()
                         .ofType(File.class)
-                        .defaultsTo(new File("bukkit.yml"))
+                        .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "bukkit.yml")) // Gina - configs/ directory restructure
                         .describedAs("Yml file");
 
                 this.acceptsAll(asList("C", "commands-settings"), "File for command settings")
                         .withRequiredArg()
                         .ofType(File.class)
-                        .defaultsTo(new File("commands.yml"))
+                        .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "commands.yml")) // Gina - configs/ directory restructure
                         .describedAs("Yml file");
 
                 this.accepts("forceUpgrade", "Whether to force a world upgrade");
@@ -112,16 +112,16 @@ public class Main {
                 this.acceptsAll(asList("S", "spigot-settings"), "File for spigot settings")
                         .withRequiredArg()
                         .ofType(File.class)
-                        .defaultsTo(new File("spigot.yml"))
+                        .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "spigot.yml")) // Gina - configs/ directory restructure
                         .describedAs("Yml file");
 
-                this.acceptsAll(asList("paper-dir", "paper-settings-directory"), "Directory for Paper settings")
+                this.acceptsAll(asList("paper-dir", "paper-settings-directory"), "Directory for Gina-Hub settings")
                         .withRequiredArg()
                         .ofType(File.class)
                         .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR))
                         .describedAs("Config directory");
 
-                this.acceptsAll(asList("paper", "paper-settings"), "File for Paper settings")
+                this.acceptsAll(asList("paper", "paper-settings"), "Legacy single-file Paper settings (only used to detect and migrate a very old pre-split config; not used otherwise)")
                         .withRequiredArg()
                         .ofType(File.class)
                         .defaultsTo(new File("paper.yml"))
@@ -172,7 +172,7 @@ public class Main {
             }
 
             // Paper start - Improve java version check
-            boolean skip = Boolean.getBoolean("Paper.IgnoreJavaVersion");
+            boolean skip = Boolean.getBoolean("Gina.IgnoreJavaVersion");
             String javaVersionName = System.getProperty("java.version");
             // J2SE SDK/JRE Version String Naming Convention
             boolean isPreRelease = javaVersionName.contains("-");

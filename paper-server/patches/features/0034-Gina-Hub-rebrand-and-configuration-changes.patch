@@ -1,0 +1,295 @@
+From 658dd4215f050c555d04a611b42c0be608821ab1 Mon Sep 17 00:00:00 2001
+From: DarkZmaj <majkovacic9@gmail.com>
+Date: Sat, 8 Aug 2026 21:06:00 +0200
+Subject: [PATCH] Gina-Hub rebrand and configuration changes
+
+---
+ ca/spottedleaf/moonrise/paper/PaperHooks.java |  4 +++-
+ com/mojang/datafixers/DataFixerBuilder.java   |  2 +-
+ com/mojang/serialization/Dynamic.java         |  2 +-
+ .../game/ClientboundLevelChunkPacketData.java |  2 +-
+ net/minecraft/resources/Identifier.java       |  2 +-
+ net/minecraft/server/Main.java                | 13 ++++++++++---
+ net/minecraft/server/MinecraftServer.java     | 19 +++++--------------
+ net/minecraft/server/dedicated/Settings.java  |  2 +-
+ .../network/ServerConnectionListener.java     |  6 +++---
+ .../network/ServerGamePacketListenerImpl.java |  2 +-
+ .../ServerHandshakePacketListenerImpl.java    |  2 +-
+ .../packs/repository/ServerPacksSource.java   |  4 ++--
+ net/minecraft/server/players/PlayerList.java  |  8 ++++----
+ net/minecraft/util/Util.java                  |  2 +-
+ .../chunk/storage/SerializableChunkData.java  |  2 +-
+ 15 files changed, 36 insertions(+), 36 deletions(-)
+
+diff --git a/ca/spottedleaf/moonrise/paper/PaperHooks.java b/ca/spottedleaf/moonrise/paper/PaperHooks.java
+index 31e3472..a74923a 100644
+--- a/ca/spottedleaf/moonrise/paper/PaperHooks.java
++++ b/ca/spottedleaf/moonrise/paper/PaperHooks.java
+@@ -35,7 +35,9 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
+ 
+     @Override
+     public String getBrand() {
+-        return "Paper";
++        // Used both as a log/thread-name display prefix and as the namespace for JVM tuning
++        // system properties (e.g. -DGina.WorkerThreadCount=N), so keep it a single clean token.
++        return "Gina";
+     }
+ 
+     @Override
+diff --git a/com/mojang/datafixers/DataFixerBuilder.java b/com/mojang/datafixers/DataFixerBuilder.java
+index c4984ad..86be921 100644
+--- a/com/mojang/datafixers/DataFixerBuilder.java
++++ b/com/mojang/datafixers/DataFixerBuilder.java
+@@ -32,7 +32,7 @@ public class DataFixerBuilder {
+     private final int minDataFixPrecacheVersion; // Paper - Perf: Cache DataFixerUpper Rewrite Rules on demand
+ 
+     public DataFixerBuilder(final int dataVersion) {
+-        this.minDataFixPrecacheVersion = Integer.getInteger("Paper.minPrecachedDatafixVersion", dataVersion + 1) * 10; // Paper - Perf: default to precache nothing - Mojang stores versions * 10 to allow for 'sub versions'
++        this.minDataFixPrecacheVersion = Integer.getInteger("Gina.minPrecachedDatafixVersion", dataVersion + 1) * 10; // Paper - Perf: default to precache nothing - Mojang stores versions * 10 to allow for 'sub versions'
+         this.dataVersion = dataVersion;
+     }
+ 
+diff --git a/com/mojang/serialization/Dynamic.java b/com/mojang/serialization/Dynamic.java
+index 2b288c3..f181b98 100644
+--- a/com/mojang/serialization/Dynamic.java
++++ b/com/mojang/serialization/Dynamic.java
+@@ -20,7 +20,7 @@ import java.util.stream.Stream;
+ 
+ @SuppressWarnings("unused")
+ public class Dynamic<T> extends DynamicLike<T> {
+-    private static final boolean DEBUG_MISSING_KEYS = Boolean.getBoolean("Paper.debugDynamicMissingKeys"); // Paper - Perf: Skip toString on values like NBT
++    private static final boolean DEBUG_MISSING_KEYS = Boolean.getBoolean("Gina.debugDynamicMissingKeys"); // Paper - Perf: Skip toString on values like NBT
+     private final T value;
+ 
+     public Dynamic(final DynamicOps<T> ops) {
+diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+index 19547e2..1a73991 100644
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+@@ -34,7 +34,7 @@ public class ClientboundLevelChunkPacketData {
+     private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
+     // Paper start - Handle oversized block entities in chunks
+     private final java.util.List<net.minecraft.network.protocol.Packet<?>> extraPackets = new java.util.ArrayList<>();
+-    private static final int BLOCK_ENTITY_LIMIT = Integer.getInteger("Paper.excessiveTELimit", 750);
++    private static final int BLOCK_ENTITY_LIMIT = Integer.getInteger("Gina.excessiveTELimit", 750);
+ 
+     public List<net.minecraft.network.protocol.Packet<?>> getExtraPackets() {
+         return this.extraPackets;
+diff --git a/net/minecraft/resources/Identifier.java b/net/minecraft/resources/Identifier.java
+index ae62191..69fce93 100644
+--- a/net/minecraft/resources/Identifier.java
++++ b/net/minecraft/resources/Identifier.java
+@@ -20,7 +20,7 @@ public final class Identifier implements Comparable<Identifier> {
+     public static final char NAMESPACE_SEPARATOR = ':';
+     public static final String DEFAULT_NAMESPACE = "minecraft";
+     public static final String REALMS_NAMESPACE = "realms";
+-    public static final String PAPER_NAMESPACE = "paper"; // Paper
++    public static final String GINA_NAMESPACE = "gina"; // Gina - renamed from Paper's "paper" namespace; safe because it's Gina-Hub's own internal registry/datapack namespace, not an externally-checked API-compatibility identifier (see ServerBuildInfo.BRAND_PAPER_ID for that, which is intentionally left unchanged)
+     private final String namespace;
+     private final String path;
+ 
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index 9216e85..067cdc7 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -95,6 +95,13 @@ public class Main {
+             */ // CraftBukkit end
+         try {
+ 
++            // Gina start - filesystem restructure: migrate any old-layout (Paper-style) files/dirs
++            // to the new configs/ + data/ + worlds/ layout before ANYTHING below reads a config,
++            // ban list, whitelist, usercache, version history, or world -- must run first, using
++            // only raw filesystem checks (no config system is initialized yet at this point).
++            io.gina.hub.GinaFilesystemMigration.migrate(optionSet);
++            // Gina end - filesystem restructure
++
+             Path path = (Path) optionSet.valueOf("pidFile"); // CraftBukkit
+             if (path != null) {
+                 writePidFile(path);
+@@ -113,7 +120,7 @@ public class Main {
+             DedicatedServerSettings dedicatedServerSettings = new DedicatedServerSettings(optionSet); // CraftBukkit - CLI argument support
+             dedicatedServerSettings.forceSave();
+             RegionFileVersion.configure(dedicatedServerSettings.getProperties().regionFileComression);
+-            Path path2 = Paths.get("eula.txt");
++            Path path2 = Paths.get("eula.txt"); // Gina - kept at server root deliberately, for maximum hosting-panel/egg compatibility (see GinaFilesystemMigration javadoc)
+             Eula eula = new Eula(path2);
+             // Paper start - load config files early for access below if needed
+             org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("bukkit-settings"));
+@@ -166,12 +173,12 @@ public class Main {
+ 
+             // Paper start - fix SPIGOT-5824
+             File file;
+-            File userCacheFile = new File(Services.USERID_CACHE_FILE);
++            File userCacheFile = new File("data", Services.USERID_CACHE_FILE); // Gina - data/ directory restructure
+             if (optionSet.has("universe")) {
+                 file = (File) optionSet.valueOf("universe"); // CraftBukkit
+                 userCacheFile = new File(file, Services.USERID_CACHE_FILE);
+             } else {
+-                file = new File(bukkitConfiguration.getString("settings.world-container", "."));
++                file = new File(bukkitConfiguration.getString("settings.world-container", "worlds")); // Gina - worlds/ directory restructure
+             }
+             // Paper end - fix SPIGOT-5824
+             Services services = Services.create(new com.destroystokyo.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), file, userCacheFile, optionSet); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index ca2caac..d44219d 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -1274,20 +1274,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             org.spigotmc.WatchdogThread.tick();
+             // Paper end
+             org.spigotmc.WatchdogThread.hasStarted = true; // Paper
+-            // Paper start - Add onboarding message for initial server start
+-            if (io.papermc.paper.configuration.GlobalConfiguration.isFirstStart) {
+-                LOGGER.info("*************************************************************************************");
+-                LOGGER.info("This is the first time you're starting this server.");
+-                LOGGER.info("It's recommended you read our 'Getting Started' documentation for guidance.");
+-                LOGGER.info("View this and more helpful information here: https://docs.papermc.io/paper/next-steps");
+-                LOGGER.info("*************************************************************************************");
+-            }
+-            // Paper end - Add onboarding message for initial server start
+-            // Paper start - Improve outdated version checking
+-            if (System.getProperty("paper.disableStartupVersionCheck") == null && io.papermc.paper.configuration.GlobalConfiguration.get().updateChecker.enabled) {
+-                CompletableFuture.runAsync(com.destroystokyo.paper.PaperVersionFetcher::getUpdateStatusStartupMessage, io.papermc.paper.util.MCUtil.ASYNC_EXECUTOR);
+-            }
+-            // Paper end - Improve outdated version checking
++            // Gina - removed two upstream Paper startup messages entirely: the first-start
++            // onboarding banner ("Add onboarding message for initial server start"), and the
++            // per-startup build/attribution lines ("Improve outdated version checking"). Every
++            // startup should be clean; legal/attribution info belongs in NOTICE.md and is
++            // available on demand via /gina version, not printed to the console every boot.
+ 
+             while (this.running) {
+                 final long tickStart = System.nanoTime(); // Paper - improve tick loop
+diff --git a/net/minecraft/server/dedicated/Settings.java b/net/minecraft/server/dedicated/Settings.java
+index bd79688..b0089b5 100644
+--- a/net/minecraft/server/dedicated/Settings.java
++++ b/net/minecraft/server/dedicated/Settings.java
+@@ -26,7 +26,7 @@ import org.slf4j.Logger;
+ public abstract class Settings<T extends Settings<T>> {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public final Properties properties;
+-    private static final boolean skipComments = Boolean.getBoolean("Paper.skipServerPropertiesComments"); // Paper - allow skipping server.properties comments
++    private static final boolean skipComments = Boolean.getBoolean("Gina.skipServerPropertiesComments"); // Paper - allow skipping server.properties comments
+     // CraftBukkit start
+     private joptsimple.OptionSet options = null;
+ 
+diff --git a/net/minecraft/server/network/ServerConnectionListener.java b/net/minecraft/server/network/ServerConnectionListener.java
+index 33e1cdb..590454b 100644
+--- a/net/minecraft/server/network/ServerConnectionListener.java
++++ b/net/minecraft/server/network/ServerConnectionListener.java
+@@ -50,7 +50,7 @@ public class ServerConnectionListener {
+ 
+     // Paper start - prevent blocking on adding a new connection while the server is ticking
+     private final java.util.Queue<Connection> pending = new java.util.concurrent.ConcurrentLinkedQueue<>();
+-    private static final boolean disableFlushConsolidation = Boolean.getBoolean("Paper.disableFlushConsolidate"); // Paper - Optimize network
++    private static final boolean disableFlushConsolidation = Boolean.getBoolean("Gina.disableFlushConsolidate"); // Paper - Optimize network
+ 
+     private final void addPending() {
+         Connection connection;
+@@ -76,8 +76,8 @@ public class ServerConnectionListener {
+             }
+             // Paper end - Warn people with console access that HAProxy is in use.
+             // Paper start - Use Velocity cipher
+-            ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
+-            ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
++            ServerConnectionListener.LOGGER.info("Gina-Hub: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
++            ServerConnectionListener.LOGGER.info("Gina-Hub: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
+             // Paper end - Use Velocity cipher
+ 
+             this.channels
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index e158d61..4b8a8b8 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -317,7 +317,7 @@ public class ServerGamePacketListenerImpl
+     private boolean waitingForSwitchToConfig;
+     private boolean waitingForRespawn;
+     private int clientLoadedTimeoutTimer;
+-    private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
++    private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Gina.maxSignLength", 80); // Paper - Limit client sign length
+     private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
+     public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
+ 
+diff --git a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
+index c180ee8..2348084 100644
+--- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
+@@ -23,7 +23,7 @@ public class ServerHandshakePacketListenerImpl implements ServerHandshakePacketL
+     private static final java.util.Map<java.net.InetAddress, Long> throttleTracker = new java.util.HashMap<>();
+     private static int throttleCounter = 0;
+     // Paper end - Connection throttle
+-    private static final boolean BYPASS_HOSTCHECK = Boolean.getBoolean("Paper.bypassHostCheck"); // Paper
++    private static final boolean BYPASS_HOSTCHECK = Boolean.getBoolean("Gina.bypassHostCheck"); // Paper
+     private final MinecraftServer server;
+     private final Connection connection;
+ 
+diff --git a/net/minecraft/server/packs/repository/ServerPacksSource.java b/net/minecraft/server/packs/repository/ServerPacksSource.java
+index 547bdb2..97604b1 100644
+--- a/net/minecraft/server/packs/repository/ServerPacksSource.java
++++ b/net/minecraft/server/packs/repository/ServerPacksSource.java
+@@ -48,7 +48,7 @@ public class ServerPacksSource extends BuiltInPackSource {
+     public static VanillaPackResources createVanillaPackSource() {
+         return new VanillaPackResourcesBuilder()
+             .setMetadata(BUILT_IN_METADATA)
+-            .exposeNamespace("minecraft", Identifier.PAPER_NAMESPACE) // Paper
++            .exposeNamespace("minecraft", Identifier.GINA_NAMESPACE) // Gina
+             .applyDevelopmentConfig()
+             .pushJarResources()
+             .build(VANILLA_PACK_INFO);
+@@ -69,7 +69,7 @@ public class ServerPacksSource extends BuiltInPackSource {
+         // Paper start - custom built-in pack
+         final PackLocationInfo info;
+         final PackSelectionConfig packConfig;
+-        if ("paper".equals(id)) {
++        if ("gina".equals(id)) { // Gina - renamed from "paper" to match the renamed datapacks/gina/ resource folder
+             info = new PackLocationInfo(id, title, PackSource.BUILT_IN, Optional.empty());
+             packConfig = new PackSelectionConfig(true, Pack.Position.TOP, true);
+         } else {
+diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
+index 989ac56..b140804 100644
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -104,10 +104,10 @@ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+ public abstract class PlayerList {
+-    public static final File USERBANLIST_FILE = new File("banned-players.json");
+-    public static final File IPBANLIST_FILE = new File("banned-ips.json");
+-    public static final File OPLIST_FILE = new File("ops.json");
+-    public static final File WHITELIST_FILE = new File("whitelist.json");
++    public static final File USERBANLIST_FILE = new File("data", "banned-players.json");
++    public static final File IPBANLIST_FILE = new File("data", "banned-ips.json");
++    public static final File OPLIST_FILE = new File("data", "ops.json");
++    public static final File WHITELIST_FILE = new File("data", "whitelist.json");
+     public static final Component CHAT_FILTERED_FULL = Component.translatable("chat.filtered_full");
+     public static final Component DUPLICATE_LOGIN_DISCONNECT_MESSAGE = Component.translatable("multiplayer.disconnect.duplicate_login");
+     private static final Logger LOGGER = LogUtils.getLogger();
+diff --git a/net/minecraft/util/Util.java b/net/minecraft/util/Util.java
+index 1e77bcc..440db20 100644
+--- a/net/minecraft/util/Util.java
++++ b/net/minecraft/util/Util.java
+@@ -216,7 +216,7 @@ public class Util {
+             maxExecutorThreads = cpus * 2 / 3;
+         }
+         maxExecutorThreads = Math.min(8, maxExecutorThreads);
+-        return Integer.getInteger("Paper.WorkerThreadCount", maxExecutorThreads);
++        return Integer.getInteger("Gina.WorkerThreadCount", maxExecutorThreads);
+         // Paper end - Perf: use simpler thread pool that allows 1 thread and reduce worldgen thread worker count for low core count CPUs
+     }
+ 
+diff --git a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
+index 95c8d65..dc3da59 100644
+--- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
++++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
+@@ -135,7 +135,7 @@ public record SerializableChunkData(
+ 
+     // Paper start - Do not let the server load chunks from newer versions
+     private static final int CURRENT_DATA_VERSION = net.minecraft.SharedConstants.getCurrentVersion().dataVersion().version();
+-    private static final boolean JUST_CORRUPT_IT = Boolean.getBoolean("Paper.ignoreWorldDataVersion");
++    private static final boolean JUST_CORRUPT_IT = Boolean.getBoolean("Gina.ignoreWorldDataVersion");
+     // Paper end - Do not let the server load chunks from newer versions
+ 
+     public static SerializableChunkData parse(LevelHeightAccessor level, PalettedContainerFactory containerFactory, CompoundTag tag) {
+-- 
+2.49.0.windows.1
+

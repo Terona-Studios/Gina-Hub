@@ -1,4 +1,10 @@
-Paper inherits its licensing from the included upstream projects.
+> **Gina-Hub notice:** Gina-Hub is a heavily modified fork of PaperMC/Paper. All licensing
+> terms below, inherited from Paper and its own upstream projects, continue to apply in full
+> to Gina-Hub, including to Gina-Hub's own modifications (GPLv3 is copyleft: modified GPL
+> code remains GPL-licensed). See [NOTICE.md](NOTICE.md) for a plain-language summary of
+> what Gina-Hub is and how it relates to Paper.
+
+Paper (and by extension, Gina-Hub) inherits its licensing from the included upstream projects.
 
 As such, Paper is licensed under the
 [GNU General Public License version 3](licenses/GPL.md); as it inherits it from Spigot,

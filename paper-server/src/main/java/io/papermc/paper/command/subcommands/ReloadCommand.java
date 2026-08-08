@@ -28,6 +28,6 @@ public final class ReloadCommand implements PaperSubcommand {
         server.paperConfigurations.reloadConfigs(server);
         server.server.reloadCount++;
 
-        Command.broadcastCommandMessage(sender, text("Paper config reload complete.", GREEN));
+        Command.broadcastCommandMessage(sender, text("Gina-Hub config reload complete.", GREEN));
     }
 }
