@@ -44,8 +44,11 @@ run-*/
 scratch-*/
 logs/
 
-# Gina benchmark output (harness itself lives in benchmark/, results are not committed)
+# Gina benchmark output (harness itself lives in benchmark/, results/fixtures/servers are not committed)
 benchmark/results/
+benchmark/hub-map-fixture/
+benchmark/server-test/
+benchmark/loadbot/classes/
 
 !gradle/wrapper/gradle-wrapper.jar
 
