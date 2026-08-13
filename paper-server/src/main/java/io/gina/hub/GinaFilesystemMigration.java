@@ -17,18 +17,21 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>
  *   config/                     -&gt; configs/   (also collects bukkit.yml, commands.yml,
- *                                               spigot.yml, server.properties, help.yml,
- *                                               permissions.yml, which Paper keeps at root)
+ *                                               spigot.yml, help.yml, permissions.yml,
+ *                                               which Paper keeps at root)
  *   banned-ips.json, etc.       -&gt; data/
  *   world, world_nether, ...    -&gt; worlds/
  * </pre>
  *
- * {@code eula.txt} is deliberately NOT part of this restructure and stays at the
- * conventional root ({@code ./eula.txt}) -- this is the one file every hosting panel,
- * Pterodactyl egg, and custom startup script already knows how to find and write,
- * regardless of whatever else a given server software calls its config layout. An earlier
- * build of Gina-Hub briefly moved it into {@code configs/eula.txt}; this class reverses
- * that for anyone who already has one there (see {@link #migrateEulaBackToRoot()}).
+ * {@code eula.txt} and {@code server.properties} are deliberately NOT part of this restructure
+ * and stay at the conventional root ({@code ./eula.txt}, {@code ./server.properties}) -- these
+ * are the files every hosting panel, Pterodactyl egg, and custom startup script already knows
+ * how to find and write, regardless of whatever else a given server software calls its config
+ * layout. Panels that manage server.properties directly write a fresh copy at the root path on
+ * every (re)start; keeping it anywhere else means that fresh copy permanently collides with a
+ * previously-migrated one every single boot. An earlier build of Gina-Hub moved both into
+ * configs/; this class reverses that for anyone who already has them there (see
+ * {@link #migrateEulaBackToRoot()}, {@link #migrateServerPropertiesBackToRoot}).
  *
  * <p>This class runs once, very early in server bootstrap (before any config, ban list,
  * whitelist, usercache, version history, or world is read), and safely migrates an
@@ -72,6 +75,7 @@ public final class GinaFilesystemMigration {
             migrateOldConfigDirectory();
             migrateRootConfigFiles(optionSet);
             migrateEulaBackToRoot();
+            migrateServerPropertiesBackToRoot(optionSet);
             migrateDataFiles();
             migrateWorlds(optionSet);
         } catch (final Exception ex) {
@@ -122,9 +126,6 @@ public final class GinaFilesystemMigration {
         if (!optionSet.has("spigot-settings")) {
             moveOrArchive(Path.of("spigot.yml"), Path.of(CONFIGS_DIR, "spigot.yml"), "spigot.yml");
         }
-        if (!optionSet.has("config")) {
-            moveOrArchive(Path.of("server.properties"), Path.of(CONFIGS_DIR, "server.properties"), "server.properties");
-        }
         moveOrArchive(Path.of("help.yml"), Path.of(CONFIGS_DIR, "help.yml"), "help.yml");
         moveOrArchive(Path.of("permissions.yml"), Path.of(CONFIGS_DIR, "permissions.yml"), "permissions.yml");
     }
@@ -137,6 +138,28 @@ public final class GinaFilesystemMigration {
      */
     private static void migrateEulaBackToRoot() {
         moveOrArchive(Path.of(CONFIGS_DIR, "eula.txt"), Path.of("eula.txt"), "configs/eula.txt");
+    }
+
+    /**
+     * Reverses an earlier Gina-Hub design where server.properties lived under
+     * {@code configs/} like the rest of the restructured layout. In practice, hosting panels
+     * (Pterodactyl eggs in particular) write server.properties directly at the conventional
+     * root path on every (re)start regardless of Gina's own layout -- with server.properties
+     * kept in configs/, that meant every restart found a freshly-written root copy alongside
+     * the already-migrated configs/ copy and archived the fresh one as a "conflict", silently
+     * discarding whatever the panel had just written and accumulating a new backup file on
+     * every boot. Root is now canonical (matching eula.txt's existing precedent, and the
+     * {@code -c}/{@code --config} CLI default in CraftBukkit's Main); this moves an existing
+     * configs/server.properties back once for anyone upgrading from that layout, preserving
+     * their existing values, same as {@link #migrateEulaBackToRoot()}.
+     */
+    private static void migrateServerPropertiesBackToRoot(final joptsimple.OptionSet optionSet) {
+        if (optionSet.has("config")) {
+            // an explicit -c/--config path was requested; respect it instead of relocating
+            // files out from under an intentional custom setup
+            return;
+        }
+        moveOrArchive(Path.of(CONFIGS_DIR, "server.properties"), Path.of("server.properties"), "configs/server.properties");
     }
 
     private static void migrateDataFiles() {

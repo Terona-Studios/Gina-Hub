@@ -30,7 +30,7 @@ public class Main {
                 this.acceptsAll(asList("c", "config"), "Properties file to use")
                         .withRequiredArg()
                         .ofType(File.class)
-                        .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR, "server.properties")) // Gina - configs/ directory restructure
+                        .defaultsTo(new File("server.properties")) // Gina - kept at server root deliberately, same rationale as eula.txt (see GinaFilesystemMigration): hosting panels/Pterodactyl eggs write here directly
                         .describedAs("Properties file");
 
                 this.acceptsAll(asList("P", "plugins"), "Plugin directory to use")
