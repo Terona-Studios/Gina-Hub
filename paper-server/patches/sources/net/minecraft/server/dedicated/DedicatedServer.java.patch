@@ -88,7 +88,7 @@
          LOGGER.info("Loading properties");
          DedicatedServerProperties properties = this.settings.getProperties();
          if (this.isSingleplayer()) {
-@@ -221,8 +_,46 @@
+@@ -221,8 +_,47 @@
              this.setLocalIp(properties.serverIp);
          }
  
@@ -114,7 +114,8 @@
 +        thread.start(); // Paper - Enhance console tab completions for brigadier commands; start console thread after MinecraftServer.console & PaperConfig are initialized
 +        io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
 +        this.server.spark.registerCommandBeforePlugins(this.server); // Paper - spark
-+        com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
++        // Gina - removed: Paper's own bStats metrics reporting (com.destroystokyo.paper.Metrics). Gina-Hub does not
++        // ship or start its own bStats integration; third-party plugins remain free to bundle and run their own.
 +        com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
 +
 +        // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
