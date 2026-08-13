@@ -356,6 +356,14 @@ tasks.registerRunTask("runReobfPaperclip") {
     mainClass.set(null as String?)
 }
 
+tasks.register<Copy>("ginaHubJar") {
+    description = "Assembles the Mojang-mapped Paperclip jar as Gina-Hub.jar"
+    group = "build"
+    from(tasks.createMojmapPaperclipJar.flatMap { it.outputZip })
+    into(layout.buildDirectory.dir("libs"))
+    rename { "Gina-Hub.jar" }
+}
+
 fill {
     project("paper")
     versionFamily(paperweight.minecraftVersion.map { it.split(".", "-").takeWhile { part -> part.toIntOrNull() != null }.take(2).joinToString(".") })

@@ -1,28 +1,11 @@
-From 658dd4215f050c555d04a611b42c0be608821ab1 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: DarkZmaj <majkovacic9@gmail.com>
 Date: Sat, 8 Aug 2026 21:06:00 +0200
 Subject: [PATCH] Gina-Hub rebrand and configuration changes
 
----
- ca/spottedleaf/moonrise/paper/PaperHooks.java |  4 +++-
- com/mojang/datafixers/DataFixerBuilder.java   |  2 +-
- com/mojang/serialization/Dynamic.java         |  2 +-
- .../game/ClientboundLevelChunkPacketData.java |  2 +-
- net/minecraft/resources/Identifier.java       |  2 +-
- net/minecraft/server/Main.java                | 13 ++++++++++---
- net/minecraft/server/MinecraftServer.java     | 19 +++++--------------
- net/minecraft/server/dedicated/Settings.java  |  2 +-
- .../network/ServerConnectionListener.java     |  6 +++---
- .../network/ServerGamePacketListenerImpl.java |  2 +-
- .../ServerHandshakePacketListenerImpl.java    |  2 +-
- .../packs/repository/ServerPacksSource.java   |  4 ++--
- net/minecraft/server/players/PlayerList.java  |  8 ++++----
- net/minecraft/util/Util.java                  |  2 +-
- .../chunk/storage/SerializableChunkData.java  |  2 +-
- 15 files changed, 36 insertions(+), 36 deletions(-)
 
 diff --git a/ca/spottedleaf/moonrise/paper/PaperHooks.java b/ca/spottedleaf/moonrise/paper/PaperHooks.java
-index 31e3472..a74923a 100644
+index 31e34721f48a5d88379f50104abcf0fc63ebd194..a74923a7f0aee4a92f2c20d0a0922cd5e7f8f134 100644
 --- a/ca/spottedleaf/moonrise/paper/PaperHooks.java
 +++ b/ca/spottedleaf/moonrise/paper/PaperHooks.java
 @@ -35,7 +35,9 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
@@ -37,7 +20,7 @@ index 31e3472..a74923a 100644
  
      @Override
 diff --git a/com/mojang/datafixers/DataFixerBuilder.java b/com/mojang/datafixers/DataFixerBuilder.java
-index c4984ad..86be921 100644
+index c4984ad9c3dc471acd23fa53a0fb0069691992c0..86be9216939207ddd8b1d40c32301a6ecf36d384 100644
 --- a/com/mojang/datafixers/DataFixerBuilder.java
 +++ b/com/mojang/datafixers/DataFixerBuilder.java
 @@ -32,7 +32,7 @@ public class DataFixerBuilder {
@@ -50,7 +33,7 @@ index c4984ad..86be921 100644
      }
  
 diff --git a/com/mojang/serialization/Dynamic.java b/com/mojang/serialization/Dynamic.java
-index 2b288c3..f181b98 100644
+index 2b288c354097ef387c1a9d149bdff78e40f77fc1..f181b98e49849836f64340cef95ad2d877c758c7 100644
 --- a/com/mojang/serialization/Dynamic.java
 +++ b/com/mojang/serialization/Dynamic.java
 @@ -20,7 +20,7 @@ import java.util.stream.Stream;
@@ -63,7 +46,7 @@ index 2b288c3..f181b98 100644
  
      public Dynamic(final DynamicOps<T> ops) {
 diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
-index 19547e2..1a73991 100644
+index 19547e22620f16d01f05bbd13a4dcb9c0df636df..1a73991f874c5caa0e818042787657a015aea66d 100644
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 @@ -34,7 +34,7 @@ public class ClientboundLevelChunkPacketData {
@@ -76,7 +59,7 @@ index 19547e2..1a73991 100644
      public List<net.minecraft.network.protocol.Packet<?>> getExtraPackets() {
          return this.extraPackets;
 diff --git a/net/minecraft/resources/Identifier.java b/net/minecraft/resources/Identifier.java
-index ae62191..69fce93 100644
+index ae6219185aa00a2753b0986ecf5f8456f4c2515d..69fce93706a5f6ef8a2effa31d0a27b71f9852b1 100644
 --- a/net/minecraft/resources/Identifier.java
 +++ b/net/minecraft/resources/Identifier.java
 @@ -20,7 +20,7 @@ public final class Identifier implements Comparable<Identifier> {
@@ -89,7 +72,7 @@ index ae62191..69fce93 100644
      private final String path;
  
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index 9216e85..067cdc7 100644
+index 9216e85e74bb0121c72665f155b07cf9a37f430a..067cdc79bd71462db905d82a2f1ddb1e48e08f85 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -95,6 +95,13 @@ public class Main {
@@ -131,7 +114,7 @@ index 9216e85..067cdc7 100644
              // Paper end - fix SPIGOT-5824
              Services services = Services.create(new com.destroystokyo.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), file, userCacheFile, optionSet); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ca2caac..d44219d 100644
+index ca2caace6aab0dfcb0ab7a0fd28e66555c62fdc5..d44219d820d6d4586492da40f1d7f9303982c86d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1274,20 +1274,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -161,7 +144,7 @@ index ca2caac..d44219d 100644
              while (this.running) {
                  final long tickStart = System.nanoTime(); // Paper - improve tick loop
 diff --git a/net/minecraft/server/dedicated/Settings.java b/net/minecraft/server/dedicated/Settings.java
-index bd79688..b0089b5 100644
+index bd79688463372f538a9524cd90b737a0e507f3f5..b0089b5c5b1e3bf07924e74137a50a705ea41af6 100644
 --- a/net/minecraft/server/dedicated/Settings.java
 +++ b/net/minecraft/server/dedicated/Settings.java
 @@ -26,7 +26,7 @@ import org.slf4j.Logger;
@@ -174,7 +157,7 @@ index bd79688..b0089b5 100644
      private joptsimple.OptionSet options = null;
  
 diff --git a/net/minecraft/server/network/ServerConnectionListener.java b/net/minecraft/server/network/ServerConnectionListener.java
-index 33e1cdb..590454b 100644
+index 33e1cdb00d648c992af03a976899253141314b27..590454baf3676c1e6adfc60fe6569b7bb5c887f2 100644
 --- a/net/minecraft/server/network/ServerConnectionListener.java
 +++ b/net/minecraft/server/network/ServerConnectionListener.java
 @@ -50,7 +50,7 @@ public class ServerConnectionListener {
@@ -198,7 +181,7 @@ index 33e1cdb..590454b 100644
  
              this.channels
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index e158d61..4b8a8b8 100644
+index e158d614abed8d16e80192c0c9abd8537c92b9dc..4b8a8b83957448a4cc311a7ece198b3bfb66ee16 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -317,7 +317,7 @@ public class ServerGamePacketListenerImpl
@@ -211,7 +194,7 @@ index e158d61..4b8a8b8 100644
      public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
  
 diff --git a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
-index c180ee8..2348084 100644
+index c180ee8e811bebdcbe542ddd1cb059c1a0ae2335..2348084cd39f1448e6f0352abce9cfcedfa34d2a 100644
 --- a/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
 @@ -23,7 +23,7 @@ public class ServerHandshakePacketListenerImpl implements ServerHandshakePacketL
@@ -224,7 +207,7 @@ index c180ee8..2348084 100644
      private final Connection connection;
  
 diff --git a/net/minecraft/server/packs/repository/ServerPacksSource.java b/net/minecraft/server/packs/repository/ServerPacksSource.java
-index 547bdb2..97604b1 100644
+index 547bdb2e7e150e0a608c06aa8dfa5b564c6a25a3..97604b17decb3c2a25bb89bb66819660df426df3 100644
 --- a/net/minecraft/server/packs/repository/ServerPacksSource.java
 +++ b/net/minecraft/server/packs/repository/ServerPacksSource.java
 @@ -48,7 +48,7 @@ public class ServerPacksSource extends BuiltInPackSource {
@@ -246,7 +229,7 @@ index 547bdb2..97604b1 100644
              packConfig = new PackSelectionConfig(true, Pack.Position.TOP, true);
          } else {
 diff --git a/net/minecraft/server/players/PlayerList.java b/net/minecraft/server/players/PlayerList.java
-index 989ac56..b140804 100644
+index 989ac565c47a70c7947cb7315d0f5c2cfecd0363..b140804a226d17cf5c2257b4ac1b579f8d8577f3 100644
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
 @@ -104,10 +104,10 @@ import org.jspecify.annotations.Nullable;
@@ -265,7 +248,7 @@ index 989ac56..b140804 100644
      public static final Component DUPLICATE_LOGIN_DISCONNECT_MESSAGE = Component.translatable("multiplayer.disconnect.duplicate_login");
      private static final Logger LOGGER = LogUtils.getLogger();
 diff --git a/net/minecraft/util/Util.java b/net/minecraft/util/Util.java
-index 1e77bcc..440db20 100644
+index 1e77bcc0f81321030d451ed8b6ff766c400d4f81..440db2056390a20598eecc3018002df2788e29a3 100644
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
 @@ -216,7 +216,7 @@ public class Util {
@@ -278,7 +261,7 @@ index 1e77bcc..440db20 100644
      }
  
 diff --git a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-index 95c8d65..dc3da59 100644
+index 95c8d65a4b6db8d0721460ae55cb8fb8143ea9a2..dc3da59578e7d5f9f0002a179eb5f1e78bd192a0 100644
 --- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 +++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 @@ -135,7 +135,7 @@ public record SerializableChunkData(
@@ -290,6 +273,3 @@ index 95c8d65..dc3da59 100644
      // Paper end - Do not let the server load chunks from newer versions
  
      public static SerializableChunkData parse(LevelHeightAccessor level, PalettedContainerFactory containerFactory, CompoundTag tag) {
--- 
-2.49.0.windows.1
-

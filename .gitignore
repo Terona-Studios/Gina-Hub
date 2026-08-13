@@ -40,7 +40,12 @@ out/
 
 # other stuff
 run/
+run-*/
+scratch-*/
 logs/
+
+# Gina benchmark output (harness itself lives in benchmark/, results are not committed)
+benchmark/results/
 
 !gradle/wrapper/gradle-wrapper.jar
 

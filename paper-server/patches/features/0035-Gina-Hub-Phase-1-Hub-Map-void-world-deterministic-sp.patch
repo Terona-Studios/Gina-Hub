@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maj Kovacic <majkovacic9@gmail.com>
+Date: Thu, 13 Aug 2026 18:11:12 +0200
+Subject: [PATCH] Gina-Hub Phase 1: Hub-Map void world, deterministic spawn,
+ world border, simulation gamerule defaults
+
+
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index d44219d820d6d4586492da40f1d7f9303982c86d..2167134344dbae9adf1340b96be5c769d5afebe4 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -740,6 +740,14 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             try {
+                 setInitialSpawn(serverLevel, serverLevelData, worldOptions.generateBonusChest(), isDebugWorld, serverLevel.levelLoadListener); // Paper - per world level load listener
+                 serverLevelData.setInitialized(true);
++                // Gina start - apply the configured initial world border, centered on spawn, to freshly created worlds
++                if (serverLevel.dimension() == net.minecraft.world.level.Level.OVERWORLD) {
++                    net.minecraft.core.BlockPos spawnPos = serverLevelData.getRespawnData().pos();
++                    net.minecraft.world.level.border.WorldBorder worldBorder = serverLevel.getWorldBorder();
++                    worldBorder.setCenter(spawnPos.getX() + 0.5, spawnPos.getZ() + 0.5);
++                    worldBorder.setSize(serverLevel.paperConfig().hub.initialBorderSize);
++                }
++                // Gina end
+                 if (isDebugWorld) {
+                     this.setupDebugLevel(this.worldData);
+                 }
+@@ -809,6 +817,16 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), BlockPos.ZERO.above(80), 0.0F, 0.0F));
+         } else {
+             ServerChunkCache chunkSource = level.getChunkSource();
++            // Gina start - void Hub worlds are empty by design; skip vanilla's ground-search spawn logic
++            // (it assumes solid terrain exists) and place a deterministic single-block spawn platform instead.
++            if (level.generator == null && chunkSource.getGenerator() instanceof net.minecraft.world.level.levelgen.FlatLevelSource flatLevelSource
++                && flatLevelSource.settings().getLayers().isEmpty()) {
++                BlockPos spawnPos = new BlockPos(0, 65, 0);
++                level.setBlockAndUpdate(spawnPos.below(), net.minecraft.world.level.block.Blocks.BEDROCK.defaultBlockState());
++                levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), spawnPos, 0.0F, 0.0F));
++                return;
++            }
++            // Gina end
+             // CraftBukkit start
+             if (level.generator != null) {
+                 java.util.Random rand = new java.util.Random(level.getSeed());
+diff --git a/net/minecraft/server/dedicated/DedicatedServerProperties.java b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+index bbd8f68d166ebd0370f4b39362468fdc7d70f7f0..ce7e01d264c097d03940e9d7183a7bcfe72d5e7a 100644
+--- a/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -69,7 +69,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+     public final Settings<DedicatedServerProperties>.MutableValue<GameType> gameMode = this.getMutable(
+         "gamemode", dispatchNumberOrString(GameType::byId, GameType::byName), GameType::getName, GameType.SURVIVAL
+     );
+-    public final String levelName = this.get("level-name", "world");
++    public final String levelName = this.get("level-name", "Hub-Map"); // Gina - Hub-Map default world name
+     public final int serverPort = this.get("server-port", 25565);
+     public final boolean managementServerEnabled = this.get("management-server-enabled", false);
+     public final String managementServerHost = this.get("management-server-host", "localhost");
+@@ -139,8 +139,10 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+         long l = WorldOptions.parseSeed(string).orElse(WorldOptions.randomSeed());
+         this.worldOptions = new WorldOptions(l, flag, false);
+         this.worldDimensionData = new DedicatedServerProperties.WorldDimensionData(
+-            this.get("generator-settings", property -> GsonHelper.parse(!property.isEmpty() ? property : "{}"), new JsonObject()),
+-            this.get("level-type", property -> property.toLowerCase(Locale.ROOT), WorldPresets.NORMAL.identifier().toString())
++            // Gina start - Hub-Map defaults to a native void flat world (empty layers, void biome) instead of normal overworld generation
++            this.get("generator-settings", property -> GsonHelper.parse(!property.isEmpty() ? property : "{}"), GsonHelper.parse("{\"layers\":[],\"biome\":\"minecraft:the_void\"}")),
++            this.get("level-type", property -> property.toLowerCase(Locale.ROOT), WorldPresets.FLAT.identifier().toString())
++            // Gina end
+         );
+         this.serverResourcePackInfo = getServerPackInfo(
+             this.get("resource-pack-id", ""),
+diff --git a/net/minecraft/world/level/gamerules/GameRules.java b/net/minecraft/world/level/gamerules/GameRules.java
+index e71a9ffdb6c081baa79113f34b179671c179152d..8d019739767ef03caa7bdb45d42bef09f5868808 100644
+--- a/net/minecraft/world/level/gamerules/GameRules.java
++++ b/net/minecraft/world/level/gamerules/GameRules.java
+@@ -25,8 +25,8 @@ public class GameRules {
+     }
+     // Paper end - allow disabling gamerule limits
+ 
+-    public static final GameRule<Boolean> ADVANCE_TIME = registerBoolean("advance_time", GameRuleCategory.UPDATES, !SharedConstants.DEBUG_WORLD_RECREATE);
+-    public static final GameRule<Boolean> ADVANCE_WEATHER = registerBoolean("advance_weather", GameRuleCategory.UPDATES, !SharedConstants.DEBUG_WORLD_RECREATE);
++    public static final GameRule<Boolean> ADVANCE_TIME = registerBoolean("advance_time", GameRuleCategory.UPDATES, false); // Gina - Hub worlds don't advance time automatically by default
++    public static final GameRule<Boolean> ADVANCE_WEATHER = registerBoolean("advance_weather", GameRuleCategory.UPDATES, false); // Gina - Hub worlds don't cycle weather automatically by default
+     public static final GameRule<Boolean> ALLOW_ENTERING_NETHER_USING_PORTALS = registerBoolean(
+         "allow_entering_nether_using_portals", GameRuleCategory.MISC, true
+     );
+@@ -75,19 +75,19 @@ public class GameRules {
+     public static final GameRule<Boolean> PROJECTILES_CAN_BREAK_BLOCKS = registerBoolean("projectiles_can_break_blocks", GameRuleCategory.DROPS, true);
+     public static final GameRule<Boolean> PVP = registerBoolean("pvp", GameRuleCategory.PLAYER, true);
+     public static final GameRule<Boolean> RAIDS = registerBoolean("raids", GameRuleCategory.MOBS, true);
+-    public static final GameRule<Integer> RANDOM_TICK_SPEED = registerInteger("random_tick_speed", GameRuleCategory.UPDATES, 3, 0);
++    public static final GameRule<Integer> RANDOM_TICK_SPEED = registerInteger("random_tick_speed", GameRuleCategory.UPDATES, 0, 0); // Gina - Hub worlds have no natural crop/plant progression by default
+     public static final GameRule<Boolean> REDUCED_DEBUG_INFO = registerBoolean("reduced_debug_info", GameRuleCategory.MISC, false);
+     public static final GameRule<Integer> RESPAWN_RADIUS = registerInteger("respawn_radius", GameRuleCategory.PLAYER, 10, 0);
+     public static final GameRule<Boolean> SEND_COMMAND_FEEDBACK = registerBoolean("send_command_feedback", GameRuleCategory.CHAT, true);
+     public static final GameRule<Boolean> SHOW_ADVANCEMENT_MESSAGES = registerBoolean("show_advancement_messages", GameRuleCategory.CHAT, true);
+     public static final GameRule<Boolean> SHOW_DEATH_MESSAGES = registerBoolean("show_death_messages", GameRuleCategory.CHAT, true);
+     public static final GameRule<Boolean> SPAWNER_BLOCKS_WORK = registerBoolean("spawner_blocks_work", GameRuleCategory.MISC, true);
+-    public static final GameRule<Boolean> SPAWN_MOBS = registerBoolean("spawn_mobs", GameRuleCategory.SPAWNING, true);
+-    public static final GameRule<Boolean> SPAWN_MONSTERS = registerBoolean("spawn_monsters", GameRuleCategory.SPAWNING, true);
+-    public static final GameRule<Boolean> SPAWN_PATROLS = registerBoolean("spawn_patrols", GameRuleCategory.SPAWNING, true);
+-    public static final GameRule<Boolean> SPAWN_PHANTOMS = registerBoolean("spawn_phantoms", GameRuleCategory.SPAWNING, true);
+-    public static final GameRule<Boolean> SPAWN_WANDERING_TRADERS = registerBoolean("spawn_wandering_traders", GameRuleCategory.SPAWNING, true);
+-    public static final GameRule<Boolean> SPAWN_WARDENS = registerBoolean("spawn_wardens", GameRuleCategory.SPAWNING, true);
++    public static final GameRule<Boolean> SPAWN_MOBS = registerBoolean("spawn_mobs", GameRuleCategory.SPAWNING, false); // Gina - Hub worlds have no natural mob spawning by default
++    public static final GameRule<Boolean> SPAWN_MONSTERS = registerBoolean("spawn_monsters", GameRuleCategory.SPAWNING, false); // Gina - see spawn_mobs
++    public static final GameRule<Boolean> SPAWN_PATROLS = registerBoolean("spawn_patrols", GameRuleCategory.SPAWNING, false); // Gina - see spawn_mobs
++    public static final GameRule<Boolean> SPAWN_PHANTOMS = registerBoolean("spawn_phantoms", GameRuleCategory.SPAWNING, false); // Gina - see spawn_mobs
++    public static final GameRule<Boolean> SPAWN_WANDERING_TRADERS = registerBoolean("spawn_wandering_traders", GameRuleCategory.SPAWNING, false); // Gina - see spawn_mobs
++    public static final GameRule<Boolean> SPAWN_WARDENS = registerBoolean("spawn_wardens", GameRuleCategory.SPAWNING, false); // Gina - see spawn_mobs
+     public static final GameRule<Boolean> SPECTATORS_GENERATE_CHUNKS = registerBoolean("spectators_generate_chunks", GameRuleCategory.PLAYER, true);
+     public static final GameRule<Boolean> SPREAD_VINES = registerBoolean("spread_vines", GameRuleCategory.UPDATES, true);
+     public static final GameRule<Boolean> TNT_EXPLODES = registerBoolean("tnt_explodes", GameRuleCategory.MISC, true);

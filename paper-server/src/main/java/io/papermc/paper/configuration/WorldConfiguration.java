@@ -70,7 +70,7 @@ import org.spongepowered.configurate.serialize.SerializationException;
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class WorldConfiguration extends ConfigurationPart {
     private static final Logger LOGGER = LogUtils.getClassLogger();
-    static final int CURRENT_VERSION = 31; // (when you change the version, change the comment, so it conflicts on rebases): migrate spawn loaded configs to gamerule
+    static final int CURRENT_VERSION = 32; // (when you change the version, change the comment, so it conflicts on rebases): Gina - add hub.initial-border-size
 
     private final transient SpigotWorldConfig spigotConfig;
     private final transient Identifier worldKey;
@@ -88,6 +88,16 @@ public class WorldConfiguration extends ConfigurationPart {
     public int version = CURRENT_VERSION;
 
     public Anticheat anticheat;
+
+    // Gina start - Hub-Map world border
+    public Hub hub;
+
+    public class Hub extends ConfigurationPart {
+        @Comment("World border side length (in blocks) applied to a freshly-created world, centered on spawn.\n" +
+            "Has no effect on an existing world; use /worldborder to change an already-created world's border.")
+        public int initialBorderSize = 500;
+    }
+    // Gina end
 
     public class Anticheat extends ConfigurationPart {
 
