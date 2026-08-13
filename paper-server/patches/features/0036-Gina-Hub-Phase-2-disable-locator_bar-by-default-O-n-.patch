@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maj Kovacic <majkovacic9@gmail.com>
+Date: Thu, 13 Aug 2026 20:48:05 +0200
+Subject: [PATCH] Gina-Hub Phase 2: disable locator_bar by default (O(n^2)
+ waypoint tracking cost)
+
+
+diff --git a/net/minecraft/world/level/gamerules/GameRules.java b/net/minecraft/world/level/gamerules/GameRules.java
+index 8d019739767ef03caa7bdb45d42bef09f5868808..6ccfd6757e4f68c5cb9731b27a04ce5f38d90f8a 100644
+--- a/net/minecraft/world/level/gamerules/GameRules.java
++++ b/net/minecraft/world/level/gamerules/GameRules.java
+@@ -50,7 +50,7 @@ public class GameRules {
+     public static final GameRule<Boolean> KEEP_INVENTORY = registerBoolean("keep_inventory", GameRuleCategory.PLAYER, false);
+     public static final GameRule<Boolean> LAVA_SOURCE_CONVERSION = registerBoolean("lava_source_conversion", GameRuleCategory.UPDATES, false);
+     public static final GameRule<Boolean> LIMITED_CRAFTING = registerBoolean("limited_crafting", GameRuleCategory.PLAYER, false);
+-    public static final GameRule<Boolean> LOCATOR_BAR = registerBoolean("locator_bar", GameRuleCategory.PLAYER, true);
++    public static final GameRule<Boolean> LOCATOR_BAR = registerBoolean("locator_bar", GameRuleCategory.PLAYER, false); // Gina - Phase 2: measured O(n^2)-shaped cost in ServerWaypointManager (all-players-to-all-waypoints connection table rebuilt on every join/update); a Hub has no use for cross-player locator-bar tracking by default
+     public static final GameRule<Boolean> LOG_ADMIN_COMMANDS = registerBoolean("log_admin_commands", GameRuleCategory.CHAT, true);
+     public static final GameRule<Integer> MAX_BLOCK_MODIFICATIONS = registerInteger("max_block_modifications", GameRuleCategory.MISC, 32768, 1);
+     public static final GameRule<Integer> MAX_COMMAND_FORKS = registerInteger("max_command_forks", GameRuleCategory.MISC, 65536, 0);

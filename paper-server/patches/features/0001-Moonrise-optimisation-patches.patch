@@ -297,7 +297,7 @@ index 0000000000000000000000000000000000000000..1b8193587814225c2ef2c5d9e667436e
 +    }
 +}
 diff --git a/ca/spottedleaf/moonrise/paper/PaperHooks.java b/ca/spottedleaf/moonrise/paper/PaperHooks.java
-index 2a5069d11f47d11726f08b597988f8a58546824b..bf051b6443edd32ecdbd177e02f40965477638de 100644
+index 73caad9ae863ef6f1a57bd9d8bad815d1e926626..4b2850ea5474f7a67a53e25e29acd0a8410b606c 100644
 --- a/ca/spottedleaf/moonrise/paper/PaperHooks.java
 +++ b/ca/spottedleaf/moonrise/paper/PaperHooks.java
 @@ -13,6 +13,7 @@ import net.minecraft.server.level.ChunkHolder;
@@ -23328,10 +23328,10 @@ index 97a6c426654fe2e103ed46bb295e098a9c9be526..8588b380f9b5375cdb2515a01e46a573
      // CraftBukkit start
      public boolean isDebugging() {
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 294ad63a3ec518fd26e6f82c005ecfd6660ddd4f..eb06d8f012684845146429832e977e6c1ddcd62b 100644
+index 86d2aa334445a0d657eb1ed535bb4f1fd34d77a0..f8a3a0cec157a429f3fde01e8decfeada691be9e 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -550,7 +550,33 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -551,7 +551,33 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          this.handleConsoleInputs();
      }
  
