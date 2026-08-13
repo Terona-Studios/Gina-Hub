@@ -16,6 +16,11 @@ DURATION="${3:-$(( N < 50 ? 60 : (N < 150 ? 90 : 120) ))}"
 RAMP="${4:-$(( N < 20 ? 3 : N / 8 ))}"
 XMX="${5:-1G}"
 XMS="${6:-1G}"
+# Extra settle time after the ramp finishes, before the steady-state measurement window.
+# Default 12s worked through ~200 players; larger populations need longer for chunk-send/
+# connection-setup backlog to fully drain -- otherwise this measures join-burst tail, not
+# true steady state. Bump this explicitly for 300+ player runs.
+SETTLE="${7:-12}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BENCH_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -70,7 +75,7 @@ java -cp classes GinaLoadBot 127.0.0.1 25565 "$N" "$DURATION" "$RAMP" > "$BENCH_
 BOT_PID=$!
 
 # wait for ramp to finish + stabilization window
-sleep $(( RAMP + 12 ))
+sleep $(( RAMP + SETTLE ))
 
 # --- steady-state measurement ---
 cd "$SERVER_DIR"

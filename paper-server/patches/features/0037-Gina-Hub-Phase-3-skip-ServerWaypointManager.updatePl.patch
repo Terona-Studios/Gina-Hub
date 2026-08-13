@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maj Kovacic <majkovacic9@gmail.com>
+Date: Thu, 13 Aug 2026 23:52:53 +0200
+Subject: [PATCH] Gina-Hub Phase 3: skip ServerWaypointManager.updatePlayer
+ bookkeeping when locator_bar is off for that player
+
+
+diff --git a/net/minecraft/server/waypoints/ServerWaypointManager.java b/net/minecraft/server/waypoints/ServerWaypointManager.java
+index 471e558a609c9e457720660b90fe57322b860461..346c7b52adbf4962f25addd94d43f8c640eb20f9 100644
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -65,6 +65,17 @@ public class ServerWaypointManager implements WaypointManager<WaypointTransmitte
+     }
+ 
+     public void updatePlayer(ServerPlayer player) {
++        // Gina start - measured hotspot at high player counts (Phase 3: ~7% of main-thread samples
++        // at 500 players, up from ~3% noted but left alone in Phase 2 at 200). createConnection/
++        // updateConnection already no-op internally when isLocatorBarEnabledFor(player) is false and,
++        // notably, ALREADY leave any existing stale connection untouched in that case (there is no
++        // else-branch that disconnects it) -- so skipping the whole per-tick Map/Set bookkeeping here
++        // when the check is false produces an identical `this.connections` result to letting every
++        // iteration below no-op individually, just without doing the wasted work to get there.
++        if (!isLocatorBarEnabledFor(player)) {
++            return;
++        }
++        // Gina end
+         Map<WaypointTransmitter, WaypointTransmitter.Connection> map = this.connections.row(player);
+         SetView<WaypointTransmitter> set = Sets.difference(this.waypoints, map.keySet());
+ 
