@@ -49,6 +49,11 @@ benchmark/results/
 benchmark/hub-map-fixture/
 benchmark/server-test/
 benchmark/loadbot/classes/
+benchmark/statsplugin/classes/
+benchmark/statsplugin/*.jar
+
+# Claude Code harness working files
+.claude/
 
 !gradle/wrapper/gradle-wrapper.jar
 

@@ -1,7 +1,0 @@
-name: GinaBenchStats
-version: 1.0
-main: GinaBenchStats
-api-version: "1.21"
-commands:
-  ginabench:
-    description: Dump a benchmark stats snapshot to the log
