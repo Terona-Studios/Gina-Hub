@@ -243,7 +243,7 @@ public class SpigotWorldConfig {
         this.log("Entity Activation Range: An " + this.animalActivationRange + " / Mo " + this.monsterActivationRange + " / Ra " + this.raiderActivationRange + " / Mi " + this.miscActivationRange + " / Tiv " + this.tickInactiveVillagers + " / Isa " + this.ignoreSpectatorActivation);
     }
 
-    public int playerTrackingRange = 128;
+    public int playerTrackingRange = 48; // Gina - Phase 4: measured hotspot -- ChunkMap$TrackedEntity.updatePlayer is ~45% of server-thread CPU at 500 players, almost entirely player-to-player pairs; stock Paper's 128-block default means every player on a compact Hub platform passes the cheap distance check and pays the full isChunkTracked/vanish-API cost. 48 blocks is still plenty to see/interact with a crowd; admins can raise it back via entity-tracking-range.players.
     public int animalTrackingRange = 96;
     public int monsterTrackingRange = 96;
     public int miscTrackingRange = 96;
