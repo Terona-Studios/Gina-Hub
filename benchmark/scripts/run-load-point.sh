@@ -30,6 +30,8 @@ BENCH_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SERVER_DIR="$BENCH_DIR/server-test"
 if [ "$FIXTURE" = "heavy" ]; then
     FIXTURE_DIR="$BENCH_DIR/heavy-hub-fixture/Hub-Map"
+elif [ "$FIXTURE" = "final" ]; then
+    FIXTURE_DIR="$BENCH_DIR/final-hub-fixture/Hub-Map"
 else
     FIXTURE_DIR="$BENCH_DIR/hub-map-fixture/Hub-Map"
 fi

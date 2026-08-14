@@ -48,6 +48,9 @@ logs/
 benchmark/results/
 benchmark/hub-map-fixture/
 benchmark/heavy-hub-fixture/
+benchmark/final-hub-fixture/
+benchmark/plugins-cache/
+benchmark/statsplugin/hub-classes/
 benchmark/server-test/
 benchmark/loadbot/classes/
 benchmark/statsplugin/classes/

@@ -1,0 +1,7 @@
+name: GinaHubBenchmarkPlugin
+version: 1.0
+main: GinaHubBenchmarkPlugin
+api-version: "1.21"
+commands:
+  ginabench:
+    description: Dump a benchmark stats snapshot to the log
